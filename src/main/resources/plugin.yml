@@ -1,0 +1,6 @@
+name: chocolate-uhc
+version: '1.0-SNAPSHOT'
+main: me.kanennn.chocolate_uhc.Main
+api-version: '1.21'
+load: STARTUP
+authors: [ kanennn ]

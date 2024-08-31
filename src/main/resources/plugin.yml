@@ -4,3 +4,10 @@ main: me.kanennn.chocolate_uhc.Main
 api-version: '1.21'
 load: STARTUP
 authors: [ kanennn ]
+commands:
+  startgame:
+    permission: operator
+  stopgame:
+    permission: operator
+  endgame:
+    permission: operator

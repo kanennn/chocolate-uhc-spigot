@@ -14,7 +14,7 @@ public class Revive {
 
     public static void handlePlayerDeath(PlayerDeathEvent e) {
         Player p = e.getEntity();
-        if (!p.getGameMode().equals(GameMode.ADVENTURE)) {
+        if (p.getGameMode().equals(GameMode.SURVIVAL)) {
             Revive.deathEffect(p);
         } else {
             e.setDeathMessage(null);

@@ -51,6 +51,7 @@ public final class Main extends JavaPlugin {
 
         getCommand("startgame").setExecutor(new StartCommand(this));
         getCommand("stopgame").setExecutor(new StopCommand(this));
+        getCommand("endgame").setExecutor(new EndgameCommand(this));
 
         console = Bukkit.getServer().getConsoleSender();
 
@@ -126,18 +127,20 @@ public final class Main extends JavaPlugin {
     }
 
     public void Endgame() {
-        isEndgame = true;
-        events.maintainDeadOffline.clear();
+        if (!isEndgame && isStarted) {
+            isEndgame = true;
+            events.maintainDeadOffline.clear();
 
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.playSound(p, Sound.ENTITY_WITHER_DEATH, WORLD_BORDER_SIZE,0.5f);
-            p.sendTitle(ChatColor.RED + "" + ChatColor.BOLD + "Endgame", ChatColor.RED + "has begun",0, 0, 100);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.playSound(p, Sound.ENTITY_WITHER_DEATH, WORLD_BORDER_SIZE,0.5f);
+                p.sendTitle(ChatColor.RED + "" + ChatColor.BOLD + "Endgame", ChatColor.RED + "has begun",0, 0, 100);
+            }
         }
     }
 
     public void Stop() {
         if (!isEndgame) {
-            Endgame();
+            events.maintainDeadOffline.clear();
         }
         run5s.cancel();
 

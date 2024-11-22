@@ -11,3 +11,6 @@ commands:
     permission: operator
   endgame:
     permission: operator
+  gift:
+    description: gift a heart to another player
+    usage: /<command> [username] [hearts int]

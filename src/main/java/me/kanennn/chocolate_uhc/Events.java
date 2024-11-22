@@ -2,8 +2,13 @@ package me.kanennn.chocolate_uhc;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
@@ -27,6 +32,14 @@ public class Events implements Listener {
     }
 
     @EventHandler
+    public void onPlayerDamage(EntityDamageEvent e) {
+        if (e.getEntity() instanceof Player) {
+            Player p = ((Player) e.getEntity());
+            p.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(p.getHealth() - e.getFinalDamage());
+        }
+    }
+
+    @EventHandler
     public void onWorldInit(WorldInitEvent e) {
         main.worlds.add(e.getWorld());
         main.whenWorldLoad(e.getWorld());
@@ -34,8 +47,16 @@ public class Events implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent e) {
+        AttributeInstance attr = e.getEntity().getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        attr.setBaseValue(20);
+        if (e.getEntity().getLastDamageCause().getDamageSource().getCausingEntity() instanceof Player) {
+            Player p = ((Player) e.getEntity().getLastDamageCause().getDamageSource().getCausingEntity());
+            p.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(p.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue() + 10);
+            p.setHealth(p.getHealth() + 10);
+        }
         Revive.handlePlayerDeath(e);
     }
+
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent e) {
         if (e.getPlayer().getGameMode().equals(GameMode.SURVIVAL)) {

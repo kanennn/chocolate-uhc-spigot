@@ -14,9 +14,12 @@ import java.util.List;
 import java.util.logging.Level;
 
 public final class Main extends JavaPlugin {
-    public static int TIME_LENGTH = 216000;
-    public static int WORLD_BORDER_SIZE = 2048;
-    public static int CENTER_SIZE = 32;
+    public static int TIME_LENGTH_TICKS= 216000; //in ticks
+
+    public static int DELTA_EXPONENT = 10; //this will determine how big the map is: 2^x
+    public static int MIN_EXPONENT = 6;
+    //public static int WORLD_BORDER_SIZE = 1024;
+    //public static int CENTER_SIZE = 32;
 
     // gamemode adventure
     // spec can teleport but not generate chunks
@@ -52,6 +55,7 @@ public final class Main extends JavaPlugin {
         getCommand("startgame").setExecutor(new StartCommand(this));
         getCommand("stopgame").setExecutor(new StopCommand(this));
         getCommand("endgame").setExecutor(new EndgameCommand(this));
+        getCommand("gift").setExecutor(new GiftCommand(this));
 
         console = Bukkit.getServer().getConsoleSender();
 
@@ -79,7 +83,7 @@ public final class Main extends JavaPlugin {
         soulWell = new BoundingBox(centerBlock.getX() - (double) CENTER_SIZE /2, centerBlock.getY() - (double) CENTER_SIZE /2, centerBlock.getZ() - (double) CENTER_SIZE /2, centerBlock.getX() + (double) CENTER_SIZE /2 - 1, centerBlock.getY() + (double) CENTER_SIZE /2 - 1, centerBlock.getZ() + (double) CENTER_SIZE /2 - 1);
 
         overworld.getWorldBorder().setSize(CENTER_SIZE);
-        overworld.getWorldBorder().setWarningDistance(4);
+        overworld.getWorldBorder().setWarningDistance(10);
         overworld.getWorldBorder().setWarningTime(60);
         overworld.getWorldBorder().setCenter(centerBlock);
 
@@ -98,12 +102,23 @@ public final class Main extends JavaPlugin {
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.getGameMode().equals(GameMode.ADVENTURE)) {
-                p.setInvulnerable(false);
                 p.setHealth(0);
                 p.spigot().respawn();
                 p.setGameMode(GameMode.SURVIVAL);
             }
         }
+
+        BukkitRunnable turnOnInvulnerable = new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    if (p.getGameMode().equals(GameMode.SURVIVAL)) {
+                        p.setInvulnerable(false);
+                    }
+                }
+            }
+        };
+        turnOnInvulnerable.runTaskLater(this, 60L);
 
         int x = centerBlock.getBlockX();  // Marks the x coord of the centre of your map.
         int z = centerBlock.getBlockZ();  // Marks the y coord of the centre of your map.
@@ -117,11 +132,24 @@ public final class Main extends JavaPlugin {
 
         Bukkit.getServerTickManager().setFrozen(false);
 
-        overworld.getWorldBorder().setSize(WORLD_BORDER_SIZE);
-        overworld.getWorldBorder().setSize(CENTER_SIZE,TIME_LENGTH/20);
         overworld.getWorldBorder().setCenter(centerBlock);
 
-        Bukkit.getScheduler().runTaskLater(this, Main.this::Endgame, Main.TIME_LENGTH);
+        int segments = DELTA_EXPONENT;
+        int segmentTime = (TIME_LENGTH_TICKS/20)/segments;
+        var maxSize = 2^(DELTA_EXPONENT + MIN_EXPONENT);
+
+        for (int i = 0; i < segments; i++) {
+            final int j = i;
+            BukkitRunnable task = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    overworld.getWorldBorder().setSize(maxSize/(2^j), segmentTime);
+                }
+            };
+            task.runTaskLater(this, segmentTime*j);
+        }
+
+        Bukkit.getScheduler().runTaskLater(this, Main.this::Endgame, Main.TIME_LENGTH_TICKS);
 
         isStarted = true;
     }
@@ -143,6 +171,7 @@ public final class Main extends JavaPlugin {
             events.maintainDeadOffline.clear();
         }
         run5s.cancel();
+        Bukkit.getScheduler().cancelTasks(this);
 
         isEndgame = false;
         isStarted = false;
@@ -154,7 +183,24 @@ public final class Main extends JavaPlugin {
                     p.setInvulnerable(true);p.setAllowFlight(true);
 
             }
+        }
+    }
 
+    public void Cancel() {
+        if (!isEndgame) {
+            events.maintainDeadOffline.clear();
+        }
+        run5s.cancel();
+        Bukkit.getScheduler().cancelTasks(this);
+
+        isEndgame = false;
+        isStarted = false;
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.playSound(p, Sound.ENTITY_ENDER_DRAGON_DEATH, WORLD_BORDER_SIZE, 0.5f);
+            p.sendTitle(ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "Game Over", "", 0, 300, 50);
+            if (p.getGameMode().equals(GameMode.SURVIVAL)) {
+                p.setInvulnerable(true);p.setAllowFlight(true);
+            }
         }
     }
 
